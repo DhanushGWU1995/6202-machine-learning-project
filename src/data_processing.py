@@ -1,9 +1,13 @@
+from pathlib import Path
+
 import pandas as pd
 from datasets import Dataset
 
 def load_data():
     # Load CSV locally
-    df = pd.read_csv("data/complaints.csv")
+    repo_root = Path(__file__).resolve().parents[1]
+    csv_path = repo_root / "data" / "complaints.csv"
+    df = pd.read_csv(csv_path)
 
     # Keep required columns
     df = df[["Consumer complaint narrative", "Product"]]
