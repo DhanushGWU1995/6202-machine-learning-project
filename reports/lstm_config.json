@@ -1,0 +1,22 @@
+{
+  "max_words": 10000,
+  "max_len": 150,
+  "embedding_dim": 100,
+  "urgency_labels": [
+    "Low",
+    "Medium",
+    "High",
+    "Critical"
+  ],
+  "tone_labels": [
+    "Negative",
+    "Neutral",
+    "Positive"
+  ],
+  "test_metrics": {
+    "urgency_accuracy": 0.8745644599303136,
+    "urgency_f1": 0.8439258013269787,
+    "tone_accuracy": 0.6358885017421603,
+    "tone_f1": 0.5075105338519972
+  }
+}

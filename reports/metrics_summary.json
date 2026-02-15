@@ -1,0 +1,52 @@
+{
+  "best_model": "Gradient Boosting",
+  "best_weighted_f1": 0.8320621239371823,
+  "all_results": {
+    "Logistic Regression (Balanced)": {
+      "accuracy": 0.7543554006968641,
+      "weighted_f1": 0.7625756432452525
+    },
+    "Logistic Regression (Default)": {
+      "accuracy": 0.7038327526132404,
+      "weighted_f1": 0.6342098096870217
+    },
+    "Multinomial Naive Bayes": {
+      "accuracy": 0.6724738675958188,
+      "weighted_f1": 0.6104997800826588
+    },
+    "Decision Tree": {
+      "accuracy": 0.6463414634146342,
+      "weighted_f1": 0.690206513788562
+    },
+    "Random Forest": {
+      "accuracy": 0.7630662020905923,
+      "weighted_f1": 0.7700504512535499
+    },
+    "Gradient Boosting": {
+      "accuracy": 0.8414634146341463,
+      "weighted_f1": 0.8320621239371823
+    },
+    "Logistic Regression (Elastic Net)": {
+      "accuracy": 0.7386759581881533,
+      "weighted_f1": 0.748702165454861
+    }
+  },
+  "train_rows": 2294,
+  "test_rows": 574,
+  "classes": [
+    "Checking or savings account",
+    "Credit card",
+    "Credit card or prepaid card",
+    "Credit reporting or other personal consumer reports",
+    "Credit reporting, credit repair services, or other personal consumer reports",
+    "Debt collection",
+    "Money transfer, virtual currency, or money service",
+    "Mortgage"
+  ],
+  "config": {
+    "dev_mode": true,
+    "dev_max_rows": 30000,
+    "target_dataset_size": 20000,
+    "top_n_classes": 8
+  }
+}

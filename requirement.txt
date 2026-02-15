@@ -10,3 +10,8 @@ seaborn
 huggingface_hub
 accelerate
 sentencepiece
+tensorflow
+textblob
+nltk
+wordcloud
+joblib
