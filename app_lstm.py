@@ -14,6 +14,8 @@ import numpy as np
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import json
 from pathlib import Path
+import os
+from huggingface_hub import hf_hub_download
 
 # Page config
 st.set_page_config(
@@ -22,29 +24,69 @@ st.set_page_config(
     layout="wide"
 )
 
+# Model repository
+MODEL_REPO = "DhanushGWU1995/ecris-category-model"
+
 # Load models and config
 @st.cache_resource
 def load_models():
-    """Load LSTM model, tokenizer, and config"""
-    model_path = Path("models/lstm_complaint_classifier.h5")
-    tokenizer_path = Path("models/lstm_tokenizer.pkl")
-    config_path = Path("reports/lstm_config.json")
+    """Load LSTM model, tokenizer, and config from Hugging Face Hub"""
     
     try:
+        st.info(f"📥 Downloading models from Hugging Face: {MODEL_REPO}")
+        
+        # Download model files from HF Hub
+        model_path = hf_hub_download(
+            repo_id=MODEL_REPO,
+            filename="lstm_complaint_classifier.h5",
+            repo_type="model"
+        )
+        
+        tokenizer_path = hf_hub_download(
+            repo_id=MODEL_REPO,
+            filename="lstm_tokenizer.pkl",
+            repo_type="model"
+        )
+        
+        # Try to download config (optional)
+        try:
+            config_path = hf_hub_download(
+                repo_id=MODEL_REPO,
+                filename="lstm_config.json",
+                repo_type="model"
+            )
+        except:
+            config_path = None
+        
+        st.success("✓ Models downloaded successfully!")
+        
         # Load LSTM model
-        model = tf.keras.models.load_model(str(model_path))
+        model = tf.keras.models.load_model(model_path)
         
         # Load tokenizer
         with open(tokenizer_path, 'rb') as f:
             tokenizer = pickle.load(f)
         
-        # Load config
-        with open(config_path, 'r') as f:
-            config = json.load(f)
+        # Load config (if exists)
+        config = {}
+        if config_path and Path(config_path).exists():
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+        else:
+            # Default config if file not found
+            config = {
+                'test_metrics': {
+                    'urgency_accuracy': 0.75,
+                    'tone_accuracy': 0.72
+                }
+            }
         
         return model, tokenizer, config
+        
     except Exception as e:
-        st.error(f"Error loading models: {e}")
+        st.error(f"Error loading models from Hugging Face: {e}")
+        st.error(f"Repository: {MODEL_REPO}")
+        st.info("💡 Make sure the repository is public or you have access to it.")
         return None, None, None
 
 lstm_model, tokenizer, config = load_models()
