@@ -1,38 +1,38 @@
 {
   "best_model": "Gradient Boosting",
-  "best_weighted_f1": 0.8320621239371823,
+  "best_weighted_f1": 0.881710060681642,
   "all_results": {
     "Logistic Regression (Balanced)": {
-      "accuracy": 0.7543554006968641,
-      "weighted_f1": 0.7625756432452525
+      "accuracy": 0.8111932227829849,
+      "weighted_f1": 0.8167923200182067
     },
     "Logistic Regression (Default)": {
-      "accuracy": 0.7038327526132404,
-      "weighted_f1": 0.6342098096870217
+      "accuracy": 0.8358868060562364,
+      "weighted_f1": 0.8314582473058233
     },
     "Multinomial Naive Bayes": {
-      "accuracy": 0.6724738675958188,
-      "weighted_f1": 0.6104997800826588
+      "accuracy": 0.6888968997837058,
+      "weighted_f1": 0.6865621748076525
     },
     "Decision Tree": {
-      "accuracy": 0.6463414634146342,
-      "weighted_f1": 0.690206513788562
+      "accuracy": 0.6357696467195386,
+      "weighted_f1": 0.6793370247819284
     },
     "Random Forest": {
-      "accuracy": 0.7630662020905923,
-      "weighted_f1": 0.7700504512535499
+      "accuracy": 0.7735219899062725,
+      "weighted_f1": 0.7841077342989444
     },
     "Gradient Boosting": {
-      "accuracy": 0.8414634146341463,
-      "weighted_f1": 0.8320621239371823
+      "accuracy": 0.8840573179524153,
+      "weighted_f1": 0.881710060681642
     },
     "Logistic Regression (Elastic Net)": {
-      "accuracy": 0.7386759581881533,
-      "weighted_f1": 0.748702165454861
+      "accuracy": 0.8109228550829127,
+      "weighted_f1": 0.8167069845165501
     }
   },
-  "train_rows": 2294,
-  "test_rows": 574,
+  "train_rows": 88765,
+  "test_rows": 22192,
   "classes": [
     "Checking or savings account",
     "Credit card",
@@ -44,9 +44,9 @@
     "Mortgage"
   ],
   "config": {
-    "dev_mode": true,
-    "dev_max_rows": 30000,
-    "target_dataset_size": 20000,
+    "dev_mode": false,
+    "dev_max_rows": 150000,
+    "target_dataset_size": 200000,
     "top_n_classes": 8
   }
 }

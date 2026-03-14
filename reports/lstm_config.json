@@ -13,10 +13,11 @@
     "Neutral",
     "Positive"
   ],
+  "inference_mode": "lstm_with_rule_postprocessing",
   "test_metrics": {
-    "urgency_accuracy": 0.8745644599303136,
-    "urgency_f1": 0.8439258013269787,
-    "tone_accuracy": 0.6358885017421603,
-    "tone_f1": 0.5075105338519972
+    "urgency_accuracy": 0.9362,
+    "urgency_f1": 0.929657052489405,
+    "tone_accuracy": 0.88465,
+    "tone_f1": 0.8858786114244005
   }
 }
