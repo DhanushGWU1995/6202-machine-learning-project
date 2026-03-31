@@ -27,10 +27,31 @@ st.set_page_config(
 # Model repository
 MODEL_REPO = "DhanushGWU1995/ecris-category-model"
 
+
+def _load_json_if_exists(path: str | Path) -> dict:
+    p = Path(path)
+    if p.exists() and p.is_file():
+        with p.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def _merge_dicts(base: dict, override: dict) -> dict:
+    """Shallow merge of dicts (override wins)."""
+    merged = dict(base or {})
+    merged.update(override or {})
+    return merged
+
 # Load models and config
 @st.cache_resource
 def load_models():
-    """Load LSTM model, tokenizer, and config from Hugging Face Hub"""
+    """Load LSTM model/tokenizer and config.
+
+    Priority for config metrics:
+    1) Local Space artifacts under ./reports (uploaded by hf_push_space.py)
+    2) HF model repo (MODEL_REPO)
+    3) Hard-coded defaults
+    """
     
     try:
         st.info(f"📥 Downloading models from Hugging Face: {MODEL_REPO}")
@@ -48,14 +69,19 @@ def load_models():
             repo_type="model"
         )
         
-        # Try to download config (optional)
+        # Prefer local config for Spaces (since we now upload reports/)
+        local_config = _load_json_if_exists("reports/lstm_config.json")
+        local_metrics_summary = _load_json_if_exists("reports/metrics_summary.json")
+
+        # Try to download config from HF model repo (optional fallback)
+        config_path = None
         try:
             config_path = hf_hub_download(
                 repo_id=MODEL_REPO,
                 filename="lstm_config.json",
-                repo_type="model"
+                repo_type="model",
             )
-        except:
+        except Exception:
             config_path = None
         
         st.success("✓ Models downloaded successfully!")
@@ -67,19 +93,29 @@ def load_models():
         with open(tokenizer_path, 'rb') as f:
             tokenizer = pickle.load(f)
         
-        # Load config (if exists)
-        config = {}
+        # Default config (ensures app doesn't crash if keys are missing)
+        config: dict = {
+            "max_len": 150,
+            "urgency_labels": ["Low", "Medium", "High", "Critical"],
+            "tone_labels": ["Negative", "Neutral", "Positive"],
+            "test_metrics": {
+                "urgency_accuracy": 0.75,
+                "tone_accuracy": 0.72,
+            },
+        }
+
+        # Merge in HF config then local config (local wins)
+        hf_config = {}
         if config_path and Path(config_path).exists():
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-        else:
-            # Default config if file not found
-            config = {
-                'test_metrics': {
-                    'urgency_accuracy': 0.75,
-                    'tone_accuracy': 0.72
-                }
-            }
+            hf_config = _load_json_if_exists(config_path)
+        config = _merge_dicts(config, hf_config)
+        config = _merge_dicts(config, local_config)
+
+        # If metrics_summary.json contains relevant metrics, let it override display metrics.
+        # (metrics_summary.json currently tracks classical model results; we only use it
+        # when it includes keys we recognize.)
+        if isinstance(local_metrics_summary, dict) and local_metrics_summary.get("lstm_test_metrics"):
+            config["test_metrics"] = _merge_dicts(config.get("test_metrics", {}), local_metrics_summary["lstm_test_metrics"])
         
         return model, tokenizer, config
         
@@ -111,21 +147,34 @@ with st.sidebar:
     if config:
         st.markdown("---")
         st.header("📊 Model Performance")
-        st.metric("Urgency Accuracy", f"{config['test_metrics']['urgency_accuracy']:.1%}")
-        st.metric("Tone Accuracy", f"{config['test_metrics']['tone_accuracy']:.1%}")
+        test_metrics = config.get("test_metrics", {}) or {}
+        urg_acc = float(test_metrics.get("urgency_accuracy", 0.0))
+        tone_acc = float(test_metrics.get("tone_accuracy", 0.0))
+        st.metric("Urgency Accuracy", f"{urg_acc:.2%}")
+        st.metric("Tone Accuracy", f"{tone_acc:.2%}")
 
 # Main content
 col1, col2 = st.columns([2, 1])
 
 with col1:
     st.markdown("### 📝 Enter Customer Complaint")
+    if "complaint_text" not in st.session_state:
+        st.session_state["complaint_text"] = ""
+
     complaint = st.text_area(
         "Type or paste the complaint text below:",
+        key="complaint_text",
         height=200,
         placeholder="Example: I found unauthorized charges on my credit card. This is fraud and I need immediate action!"
     )
-    
-    analyze_button = st.button("🔍 Analyze Complaint", type="primary", use_container_width=True)
+
+    action_col1, action_col2 = st.columns([3, 1])
+    with action_col1:
+        analyze_button = st.button("🔍 Analyze Complaint", type="primary", use_container_width=True)
+    with action_col2:
+        if st.button("🧽 Clear", use_container_width=True):
+            st.session_state["complaint_text"] = ""
+            st.rerun()
 
 with col2:
     st.markdown("### 🎯 Try These Examples")
@@ -139,7 +188,7 @@ with col2:
     
     for label, text in examples.items():
         if st.button(label, use_container_width=True):
-            complaint = text
+            st.session_state["complaint_text"] = text
             st.rerun()
 
 # Analysis
