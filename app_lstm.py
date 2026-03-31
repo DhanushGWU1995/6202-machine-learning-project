@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 import os
 from huggingface_hub import hf_hub_download
+import joblib
 
 # Page config
 st.set_page_config(
@@ -84,6 +85,22 @@ def load_models():
         except Exception:
             config_path = None
         
+        # Load category model (optional; app still works without it)
+        category_model = None
+        try:
+            local_joblib = Path("models/best_complaint_classifier.joblib")
+            if local_joblib.exists():
+                category_model = joblib.load(local_joblib)
+            else:
+                joblib_path = hf_hub_download(
+                    repo_id=MODEL_REPO,
+                    filename="best_complaint_classifier.joblib",
+                    repo_type="model",
+                )
+                category_model = joblib.load(joblib_path)
+        except Exception:
+            category_model = None
+
         st.success("✓ Models downloaded successfully!")
         
         # Load LSTM model
@@ -116,16 +133,16 @@ def load_models():
         # when it includes keys we recognize.)
         if isinstance(local_metrics_summary, dict) and local_metrics_summary.get("lstm_test_metrics"):
             config["test_metrics"] = _merge_dicts(config.get("test_metrics", {}), local_metrics_summary["lstm_test_metrics"])
-        
-        return model, tokenizer, config
-        
+
+        return model, tokenizer, config, category_model
+
     except Exception as e:
         st.error(f"Error loading models from Hugging Face: {e}")
         st.error(f"Repository: {MODEL_REPO}")
         st.info("💡 Make sure the repository is public or you have access to it.")
-        return None, None, None
+        return None, None, None, None
 
-lstm_model, tokenizer, config = load_models()
+lstm_model, tokenizer, config, category_model = load_models()
 
 # UI Header
 st.title("🚨 ECRIS: Enterprise Customer Risk Intelligence System")
@@ -156,6 +173,11 @@ with st.sidebar:
 # Main content
 col1, col2 = st.columns([2, 1])
 
+
+def _set_complaint_text(text: str) -> None:
+    """Callback-safe way to update the complaint text area."""
+    st.session_state["complaint_text"] = text
+
 with col1:
     st.markdown("### 📝 Enter Customer Complaint")
     if "complaint_text" not in st.session_state:
@@ -173,7 +195,7 @@ with col1:
         analyze_button = st.button("🔍 Analyze Complaint", type="primary", use_container_width=True)
     with action_col2:
         if st.button("🧽 Clear", use_container_width=True):
-            st.session_state["complaint_text"] = ""
+            _set_complaint_text("")
             st.rerun()
 
 with col2:
@@ -187,9 +209,12 @@ with col2:
     }
     
     for label, text in examples.items():
-        if st.button(label, use_container_width=True):
-            st.session_state["complaint_text"] = text
-            st.rerun()
+        st.button(
+            label,
+            use_container_width=True,
+            on_click=_set_complaint_text,
+            args=(text,),
+        )
 
 # Analysis
 if analyze_button and complaint.strip():
@@ -197,6 +222,34 @@ if analyze_button and complaint.strip():
         st.error("⚠️ Models not loaded. Please ensure model files are in the correct directory.")
     else:
         with st.spinner("🧠 Analyzing complaint..."):
+            # Category prediction (optional)
+            category_label = None
+            category_confidence = None
+            if category_model is not None:
+                try:
+                    # Most sklearn text pipelines accept a list[str]
+                    if hasattr(category_model, "predict_proba"):
+                        proba = category_model.predict_proba([complaint])[0]
+                        classes = getattr(category_model, "classes_", None)
+                        if classes is None:
+                            # Fallback to classes list from reports
+                            classes = _load_json_if_exists("reports/metrics_summary.json").get("classes")
+                        if classes is not None:
+                            best_idx = int(np.argmax(proba))
+                            category_label = str(classes[best_idx])
+                            category_confidence = float(proba[best_idx])
+                        else:
+                            # No class labels available; still show confidence
+                            best_idx = int(np.argmax(proba))
+                            category_label = f"Class {best_idx}"
+                            category_confidence = float(proba[best_idx])
+                    else:
+                        pred = category_model.predict([complaint])[0]
+                        category_label = str(pred)
+                except Exception:
+                    category_label = None
+                    category_confidence = None
+
             # Preprocess
             seq = tokenizer.texts_to_sequences([complaint])
             padded = pad_sequences(seq, maxlen=config['max_len'], padding='post', truncating='post')
@@ -215,32 +268,42 @@ if analyze_button and complaint.strip():
         
         st.markdown("---")
         st.markdown("## 📊 Analysis Results")
-        
+
         # Main predictions
-        col1, col2 = st.columns(2)
-        
+        col1, col2, col3 = st.columns(3)
+
         with col1:
             urgency_color = {
                 "Low": "🟢",
                 "Medium": "🟡",
                 "High": "🟠",
-                "Critical": "🔴"
+                "Critical": "🔴",
             }
             st.markdown(f"### {urgency_color[urgency_labels[urgency_idx]]} Urgency Rating")
             st.markdown(f"# **{urgency_labels[urgency_idx]}**")
             st.markdown(f"Confidence: **{urgency_confidence*100:.1f}%**")
-        
+
         with col2:
             tone_color = {
                 "Negative": "😠",
                 "Neutral": "😐",
-                "Positive": "😊"
+                "Positive": "😊",
             }
             st.markdown(f"### {tone_color[tone_labels[tone_idx]]} Customer Tone")
             st.markdown(f"# **{tone_labels[tone_idx]}**")
             st.markdown(f"Confidence: **{tone_confidence*100:.1f}%**")
+
+        with col3:
+            st.markdown("### 🧾 Product Category")
+            if category_label is None:
+                st.markdown("# **N/A**")
+                st.caption("(Category model not available)")
+            else:
+                st.markdown(f"# **{category_label}**")
+                if category_confidence is not None:
+                    st.markdown(f"Confidence: **{category_confidence*100:.1f}%**")
         
-        # Detailed probabilities
+    # Detailed probabilities
         st.markdown("---")
         st.markdown("### 📈 Detailed Probability Breakdown")
         
