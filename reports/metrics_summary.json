@@ -1,38 +1,34 @@
 {
   "best_model": "Gradient Boosting",
-  "best_weighted_f1": 0.881710060681642,
+  "best_weighted_f1": 0.8746473035722695,
   "all_results": {
     "Logistic Regression (Balanced)": {
-      "accuracy": 0.8111932227829849,
-      "weighted_f1": 0.8167923200182067
+      "accuracy": 0.8088454755121421,
+      "weighted_f1": 0.813878684066972
     },
     "Logistic Regression (Default)": {
-      "accuracy": 0.8358868060562364,
-      "weighted_f1": 0.8314582473058233
+      "accuracy": 0.8301903857459413,
+      "weighted_f1": 0.8249478095962639
     },
     "Multinomial Naive Bayes": {
-      "accuracy": 0.6888968997837058,
-      "weighted_f1": 0.6865621748076525
+      "accuracy": 0.6867905756794646,
+      "weighted_f1": 0.6833461512155793
     },
     "Decision Tree": {
-      "accuracy": 0.6357696467195386,
-      "weighted_f1": 0.6793370247819284
+      "accuracy": 0.6482612038167593,
+      "weighted_f1": 0.6897390870952906
     },
     "Random Forest": {
-      "accuracy": 0.7735219899062725,
-      "weighted_f1": 0.7841077342989444
+      "accuracy": 0.7800841134174468,
+      "weighted_f1": 0.7892187054816885
     },
     "Gradient Boosting": {
-      "accuracy": 0.8840573179524153,
-      "weighted_f1": 0.881710060681642
-    },
-    "Logistic Regression (Elastic Net)": {
-      "accuracy": 0.8109228550829127,
-      "weighted_f1": 0.8167069845165501
+      "accuracy": 0.8773572106905441,
+      "weighted_f1": 0.8746473035722695
     }
   },
-  "train_rows": 88765,
-  "test_rows": 22192,
+  "train_rows": 88452,
+  "test_rows": 22113,
   "classes": [
     "Checking or savings account",
     "Credit card",
@@ -45,8 +41,8 @@
   ],
   "config": {
     "dev_mode": false,
-    "dev_max_rows": 150000,
-    "target_dataset_size": 200000,
+    "dev_max_rows": 200000,
+    "target_dataset_size": 275000,
     "top_n_classes": 8
   }
 }
