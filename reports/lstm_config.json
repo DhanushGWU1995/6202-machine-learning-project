@@ -15,9 +15,9 @@
   ],
   "inference_mode": "lstm_with_rule_postprocessing",
   "test_metrics": {
-    "urgency_accuracy": 0.9362,
-    "urgency_f1": 0.929657052489405,
-    "tone_accuracy": 0.88465,
-    "tone_f1": 0.8858786114244005
+    "urgency_accuracy": 0.9478587256365034,
+    "urgency_f1": 0.941711496564505,
+    "tone_accuracy": 0.8856328856328857,
+    "tone_f1": 0.8845094224122293
   }
 }
