@@ -1,30 +1,30 @@
 {
   "best_model": "Gradient Boosting",
-  "best_weighted_f1": 0.8746473035722695,
+  "best_weighted_f1": 0.8747066073354,
   "all_results": {
     "Logistic Regression (Balanced)": {
-      "accuracy": 0.8088454755121421,
-      "weighted_f1": 0.813878684066972
+      "accuracy": 0.8077601410934744,
+      "weighted_f1": 0.8128893397587406
     },
     "Logistic Regression (Default)": {
-      "accuracy": 0.8301903857459413,
-      "weighted_f1": 0.8249478095962639
+      "accuracy": 0.8316827205716094,
+      "weighted_f1": 0.8264174217456128
     },
     "Multinomial Naive Bayes": {
-      "accuracy": 0.6867905756794646,
-      "weighted_f1": 0.6833461512155793
+      "accuracy": 0.6848460181793515,
+      "weighted_f1": 0.6814431711364918
     },
     "Decision Tree": {
-      "accuracy": 0.6482612038167593,
-      "weighted_f1": 0.6897390870952906
+      "accuracy": 0.6538235427124316,
+      "weighted_f1": 0.6918377742565706
     },
     "Random Forest": {
-      "accuracy": 0.7800841134174468,
-      "weighted_f1": 0.7892187054816885
+      "accuracy": 0.7762402206846651,
+      "weighted_f1": 0.7847669381115987
     },
     "Gradient Boosting": {
-      "accuracy": 0.8773572106905441,
-      "weighted_f1": 0.8746473035722695
+      "accuracy": 0.8772215438882106,
+      "weighted_f1": 0.8747066073354
     }
   },
   "train_rows": 88452,
