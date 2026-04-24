@@ -17,6 +17,42 @@ from pathlib import Path
 import os
 from huggingface_hub import hf_hub_download
 import joblib
+import pandas as pd
+
+def sparse_to_dense(x):
+    return x.toarray()
+
+import pandas as pd
+import datetime
+
+
+def predict_complaint(complaint_text):
+    text_str = str(complaint_text).strip()
+    words = text_str.split()
+    wc = max(1, len(words))
+
+    row = pd.DataFrame([{
+        "consumer_complaint_narrative": text_str,
+        "Submitted via": "Web",
+        "State": "CA",
+        "Company response to consumer": "Closed with explanation",
+        "Timely response?": "Yes",
+        "text_len": len(text_str),
+        "word_count": wc,
+        "urgency_flag": 1 if any(k in text_str.lower()
+                                for k in ['urgent','fraud','unauthorized']) else 0
+    }])
+
+    row["recv_year"] = 2024
+    row["recv_month"] = 1
+    row["recv_dayofweek"] = 0
+    row["recv_is_weekend"] = 0
+    row["days_since_received"] = 0
+    row["avg_word_length"] = row["text_len"] / row["word_count"]
+    row["clean_text"] = row["consumer_complaint_narrative"]
+
+    return category_model.predict(row)[0]    
+
 
 # Page config
 st.set_page_config(
@@ -85,23 +121,28 @@ def load_models():
         except Exception:
             config_path = None
         
-        # Load category model (optional; app still works without it)
-        category_model = None
-        try:
-            local_joblib = Path("models/best_complaint_classifier.joblib")
-            if local_joblib.exists():
-                category_model = joblib.load(local_joblib)
-            else:
-                joblib_path = hf_hub_download(
-                    repo_id=MODEL_REPO,
-                    filename="best_complaint_classifier.joblib",
-                    repo_type="model",
-                )
-                category_model = joblib.load(joblib_path)
-        except Exception:
-            category_model = None
+        vectorizer = None
+        classifier = None
 
-        st.success("✓ Models downloaded successfully!")
+        try:
+            vec_path = hf_hub_download(
+                repo_id=MODEL_REPO,
+                filename="vectorizer.joblib"
+            )
+            clf_path = hf_hub_download(
+                repo_id=MODEL_REPO,
+                filename="classifier.joblib"
+            )
+
+            vectorizer = joblib.load(vec_path)
+            classifier = joblib.load(clf_path)
+
+            st.success("Category model loaded!")
+
+        except Exception as e:
+            st.error(f" Category model loading failed: {e}")    
+
+        st.success("Models downloaded successfully!")
         
         # Load LSTM model
         model = tf.keras.models.load_model(model_path)
@@ -134,7 +175,7 @@ def load_models():
         if isinstance(local_metrics_summary, dict) and local_metrics_summary.get("lstm_test_metrics"):
             config["test_metrics"] = _merge_dicts(config.get("test_metrics", {}), local_metrics_summary["lstm_test_metrics"])
 
-        return model, tokenizer, config, category_model
+        return model, tokenizer, config, vectorizer, classifier
 
     except Exception as e:
         st.error(f"Error loading models from Hugging Face: {e}")
@@ -142,10 +183,10 @@ def load_models():
         st.info("💡 Make sure the repository is public or you have access to it.")
         return None, None, None, None
 
-lstm_model, tokenizer, config, category_model = load_models()
+lstm_model, tokenizer, config, vectorizer, classifier = load_models()
 
 # UI Header
-st.title("🚨 ECRIS: Enterprise Customer Risk Intelligence System")
+st.title(" ECRIS: Enterprise Customer Risk Intelligence System")
 st.markdown("---")
 st.subheader("AI-Powered Complaint Analysis using Bidirectional LSTM")
 
@@ -155,8 +196,8 @@ with st.sidebar:
     st.markdown("""
     **ECRIS** uses advanced deep learning (Bidirectional LSTM) to analyze customer complaints and predict:
     
-    - **🔥 Urgency Rating**: How quickly the complaint needs attention
-    - **😊 Customer Tone**: The emotional state of the customer
+    - ** Urgency Rating**: How quickly the complaint needs attention
+    - **Customer Tone**: The emotional state of the customer
     
     This helps financial institutions prioritize complaints and route them to appropriate teams.
     """)
@@ -222,33 +263,30 @@ if analyze_button and complaint.strip():
         st.error("⚠️ Models not loaded. Please ensure model files are in the correct directory.")
     else:
         with st.spinner("🧠 Analyzing complaint..."):
-            # Category prediction (optional)
             category_label = None
             category_confidence = None
-            if category_model is not None:
+
+            if vectorizer is not None and classifier is not None:
                 try:
-                    # Most sklearn text pipelines accept a list[str]
-                    if hasattr(category_model, "predict_proba"):
-                        proba = category_model.predict_proba([complaint])[0]
-                        classes = getattr(category_model, "classes_", None)
-                        if classes is None:
-                            # Fallback to classes list from reports
-                            classes = _load_json_if_exists("reports/metrics_summary.json").get("classes")
-                        if classes is not None:
-                            best_idx = int(np.argmax(proba))
-                            category_label = str(classes[best_idx])
-                            category_confidence = float(proba[best_idx])
-                        else:
-                            # No class labels available; still show confidence
-                            best_idx = int(np.argmax(proba))
-                            category_label = f"Class {best_idx}"
-                            category_confidence = float(proba[best_idx])
-                    else:
-                        pred = category_model.predict([complaint])[0]
-                        category_label = str(pred)
-                except Exception:
-                    category_label = None
-                    category_confidence = None
+                    X_vec = vectorizer.transform([complaint]).toarray()
+
+                    # Fix Feature Size Mismatch
+                    expected_features = classifier.n_features_in_
+                    current_features = X_vec.shape[1]
+
+                    if current_features < expected_features:
+                        padding = np.zeros((X_vec.shape[0], expected_features - current_features))
+                        X_vec = np.hstack([X_vec, padding])
+
+                    pred = classifier.predict(X_vec)[0]
+                    category_label = str(pred)
+
+                    if hasattr(classifier, "predict_proba"):
+                        probs = classifier.predict_proba(X_vec)[0]
+                        category_confidence = float(np.max(probs))
+
+                except Exception as e:
+                    st.error(f" Category prediction failed: {e}")
 
             # Preprocess
             seq = tokenizer.texts_to_sequences([complaint])
@@ -267,7 +305,7 @@ if analyze_button and complaint.strip():
             tone_confidence = tone_probs[0][tone_idx]
         
         st.markdown("---")
-        st.markdown("## 📊 Analysis Results")
+        st.markdown("## Analysis Results")
 
         # Main predictions
         col1, col2, col3 = st.columns(3)
